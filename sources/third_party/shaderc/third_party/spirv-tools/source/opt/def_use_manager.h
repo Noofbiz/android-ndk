@@ -17,12 +17,11 @@
 
 #include <list>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "instruction.h"
-#include "message.h"
 #include "module.h"
+#include "spirv-tools/libspirv.hpp"
 
 namespace spvtools {
 namespace opt {
@@ -59,6 +58,12 @@ class DefUseManager {
   DefUseManager(DefUseManager&&) = delete;
   DefUseManager& operator=(const DefUseManager&) = delete;
   DefUseManager& operator=(DefUseManager&&) = delete;
+
+  // Analyzes the defs in the given |inst|.
+  void AnalyzeInstDef(ir::Instruction* inst);
+
+  // Analyzes the uses in the given |inst|.
+  void AnalyzeInstUse(ir::Instruction* inst);
 
   // Analyzes the defs and uses in the given |inst|.
   void AnalyzeInstDefUse(ir::Instruction* inst);

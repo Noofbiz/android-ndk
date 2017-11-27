@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
+#include "type_manager.h"
+
+#include <utility>
 
 #include "log.h"
 #include "reflect.h"
-#include "type_manager.h"
 
 namespace spvtools {
 namespace opt {
@@ -203,7 +204,7 @@ void TypeManager::AttachIfTypeDecoration(const ir::Instruction& inst) {
         data.push_back(inst.GetSingleWordOperand(i));
       }
       if (Struct* st = target_type->AsStruct()) {
-        st->AddMemeberDecoration(index, std::move(data));
+        st->AddMemberDecoration(index, std::move(data));
       } else {
         SPIRV_UNIMPLEMENTED(consumer_, "OpMemberDecorate non-struct type");
       }

@@ -14,21 +14,18 @@
 # limitations under the License.
 #
 import argparse
-import datetime
 import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
-import timeit
 import zipfile
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
-# TODO: Make the x86 toolchain names just be the triple.
 ALL_TOOLCHAINS = (
     'arm-linux-androideabi',
     'aarch64-linux-android',
@@ -78,30 +75,7 @@ def minimum_platform_level(abi):
     if abi in LP64_ABIS:
         return 21
     else:
-        return 9
-
-
-class Timer(object):
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-        self.duration = None
-
-    def start(self):
-        self.start_time = timeit.default_timer()
-
-    def finish(self):
-        self.end_time = timeit.default_timer()
-
-        # Not interested in partial seconds at this scale.
-        seconds = int(self.end_time - self.start_time)
-        self.duration = datetime.timedelta(seconds=seconds)
-
-    def __enter__(self):
-        self.start()
-
-    def __exit__(self, _exc_type, _exc_value, _traceback):
-        self.finish()
+        return 14
 
 
 def arch_to_toolchain(arch):
@@ -258,9 +232,18 @@ def make_package(name, directory, out_dir):
     os.chdir(os.path.dirname(directory))
     basename = os.path.basename(directory)
     try:
+        # repo.prop files are excluded because in the event that we have a
+        # repo.prop in the root of the directory we're packaging, the repo.prop
+        # file we add later in this function will create a second entry (the
+        # zip format allows multiple files with the same path).
+        #
+        # The one we create here will point back to the tree that was used to
+        # build the package, and the original repo.prop can be reached from
+        # there, so no information is lost.
         subprocess.check_call(
             ['zip', '-x', '*.pyc', '-x', '*.pyo', '-x', '*.swp',
-             '-x', '*.git*', '-0qr', path, basename])
+             '-x', '*.git*', '-x', os.path.join(basename, 'repo.prop'), '-0qr',
+             path, basename])
     finally:
         os.chdir(cwd)
 

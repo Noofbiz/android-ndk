@@ -15,6 +15,7 @@
 #ifndef LIBSPIRV_OPT_ITERATOR_H_
 #define LIBSPIRV_OPT_ITERATOR_H_
 
+#include <cstddef>  // for ptrdiff_t
 #include <iterator>
 #include <memory>
 #include <type_traits>
@@ -29,10 +30,9 @@ namespace ir {
 // std::vector<|ValueType|>.
 template <typename ValueType, bool IsConst = false>
 class UptrVectorIterator
-    : public std::iterator<
-          std::random_access_iterator_tag,
-          typename std::conditional<IsConst, const ValueType, ValueType>::type,
-          ptrdiff_t> {
+    : public std::iterator<std::random_access_iterator_tag,
+                           typename std::conditional<IsConst, const ValueType,
+                                                     ValueType>::type> {
  public:
   using super = std::iterator<
       std::random_access_iterator_tag,
@@ -80,6 +80,24 @@ class UptrVectorIterator
   template <bool IsConstForMethod = IsConst>
   inline typename std::enable_if<!IsConstForMethod, UptrVectorIterator>::type
   InsertBefore(Uptr value);
+
+  // Inserts the given |valueVector| to the position pointed to by this iterator
+  // and returns an iterator to the first newly inserted value.
+  // If the underlying vector changes capacity, all previous iterators will be
+  // invalidated. Otherwise, those previous iterators pointing to after the
+  // insertion point will be invalidated.
+  template <bool IsConstForMethod = IsConst>
+  inline typename std::enable_if<!IsConstForMethod, UptrVectorIterator>::type
+  InsertBefore(UptrVector* valueVector);
+
+  // Erases the value at the position pointed to by this iterator
+  // and returns an iterator to the following value.
+  // If the underlying vector changes capacity, all previous iterators will be
+  // invalidated. Otherwise, those previous iterators pointing to after the
+  // erasure point will be invalidated.
+  template <bool IsConstForMethod = IsConst>
+  inline typename std::enable_if<!IsConstForMethod, UptrVectorIterator>::type
+  Erase();
 
  private:
   UptrVector* container_;        // The container we are manipulating.
@@ -180,6 +198,30 @@ inline
     UptrVectorIterator<VT, IC>::InsertBefore(Uptr value) {
   auto index = iterator_ - container_->begin();
   container_->insert(iterator_, std::move(value));
+  return UptrVectorIterator(container_, container_->begin() + index);
+}
+
+template <typename VT, bool IC>
+template <bool IsConstForMethod>
+inline
+    typename std::enable_if<!IsConstForMethod, UptrVectorIterator<VT, IC>>::type
+    UptrVectorIterator<VT, IC>::InsertBefore(UptrVector* values) {
+  const auto pos = iterator_ - container_->begin();
+  const auto origsz = container_->size();
+  container_->resize(origsz + values->size());
+  std::move_backward(container_->begin() + pos, container_->begin() + origsz,
+                     container_->end());
+  std::move(values->begin(), values->end(), container_->begin() + pos);
+  return UptrVectorIterator(container_, container_->begin() + pos);
+}
+
+template <typename VT, bool IC>
+template <bool IsConstForMethod>
+inline
+    typename std::enable_if<!IsConstForMethod, UptrVectorIterator<VT, IC>>::type
+    UptrVectorIterator<VT, IC>::Erase() {
+  auto index = iterator_ - container_->begin();
+  (void)container_->erase(iterator_);
   return UptrVectorIterator(container_, container_->begin() + index);
 }
 

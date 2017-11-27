@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "spirv-tools/libspirv.h"
-#include "spirv/1.1/spirv.h"
+#include "spirv/1.2/spirv.h"
 
 // Describes an instruction.
 struct spv_instruction_t {
@@ -42,6 +42,8 @@ struct spv_instruction_t {
 };
 
 // Appends a word to an instruction, without checking for overflow.
-void spvInstructionAddWord(spv_instruction_t* inst, uint32_t value);
+inline void spvInstructionAddWord(spv_instruction_t* inst, uint32_t value) {
+  inst->words.push_back(value);
+}
 
 #endif  // LIBSPIRV_INSTRUCTION_H_
